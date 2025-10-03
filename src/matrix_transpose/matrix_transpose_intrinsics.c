@@ -7,18 +7,24 @@
 unsigned long matrix_4x4_transpose_bench(float* dst, float* src, matrix_transpose_4x4_func_t func) {
     unsigned long start, stop;
     start = read_perf_counter();
-    func(dst, src);
+    for (int iter=0; iter<4; iter++) {
+        func(dst, src);
+        func(src, dst);
+    }
     stop = read_perf_counter();
-    return stop - start;
+    return (stop - start)/8;
 }
 
 /** generic benchmark wrapper for 4x4 matrix transpose implementations */
 unsigned long matrix_nxn_transpose_bench(float* dst, float* src, size_t n, matrix_transpose_nxn_func_t func) {
     unsigned long start, stop;
     start = read_perf_counter();
-    func(dst, src, n);
+    for (int iter=0; iter<4; iter++) {
+        func(dst, src, n);
+        func(src, dst, n);
+    }
     stop = read_perf_counter();
-    return stop - start;
+    return (stop - start)/8;
 }
 
 /** transpose of a n x n matrix
@@ -60,6 +66,17 @@ void matrix_transpose_intrinsics_4x4(float *dst,
     for (i = 0; i < 4; ++i) {
         vfloat32m1_t row = __riscv_vle32_v_f32m1(src + 4 * i, 4);
         __riscv_vsse32(dst + i, sizeof(float) * 4,row, 4);
+    }
+};
+
+/** 4x4 matrix transpose using strided loads */
+void matrix_transpose_intrinsics_loads_4x4(float *dst,
+                                           float *src) 
+{
+    unsigned i;
+    for (i = 0; i < 4; ++i) {
+        vfloat32m1_t col = __riscv_vlse32_v_f32m1(src + i, sizeof(float) * 4, 4);
+        __riscv_vse32(dst + i*4, col, 4);
     }
 };
 
@@ -187,11 +204,15 @@ unsigned long matrix_4x4_transpose_vrgather_bench (float* dst, float* src) {
     unsigned long start, stop;
     vfloat32m4_t data = __riscv_vle32_v_f32m4(src, 16);
     start = read_perf_counter();
-    vfloat32m4_t result = matrix_4x4_transpose_vrgather(data);
+    vfloat32m4_t result;
+    for (int iter=0; iter<4; iter++) {
+        result = matrix_4x4_transpose_vrgather(data);
+        data = matrix_4x4_transpose_vrgather(result);
+    }
     stop = read_perf_counter();
     __riscv_vse32_v_f32m4(dst, result, 16);
 
-    return stop - start;
+    return (stop - start)/8;
 }
 
 vfloat32m4_t matrix_4x4_transpose_vslide(vfloat32m4_t src) {
@@ -241,6 +262,12 @@ unsigned long matrix_transpose_4x4_bench(float* dst, float* src)
 unsigned long matrix_transpose_intrinsics_4x4_bench(float* dst, float* src)
 {
     return matrix_4x4_transpose_bench(dst, src, matrix_transpose_intrinsics_4x4);
+}
+
+/** Benchmark wrapper for 4x4 intrinsic loads based matrix transpose */
+unsigned long matrix_transpose_intrinsics_loads_4x4_bench(float* dst, float* src)
+{
+    return matrix_4x4_transpose_bench(dst, src, matrix_transpose_intrinsics_loads_4x4);
 }
 
 /** Benchmark wrapper for nxn intrinsic based matrix transpose */
