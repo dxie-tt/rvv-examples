@@ -24,6 +24,8 @@ unsigned long matrix_transpose_nxn_bench(float *dst, float *src, size_t n);
 
 unsigned long matrix_transpose_4x4_bench(float *dst, float *src); 
 
+unsigned long matrix_transpose_rev_4x4_bench(float *dst, float *src); 
+
 unsigned long matrix_transpose_intrinsics_4x4_bench(float* dst, float* src);
 
 unsigned long matrix_transpose_intrinsics_loads_4x4_bench(float* dst, float* src);
@@ -31,6 +33,8 @@ unsigned long matrix_transpose_intrinsics_loads_4x4_bench(float* dst, float* src
 unsigned long matrix_transpose_intrinsics_nxn_bench(float *dst, float *src, size_t n);
 
 unsigned long matrix_transpose_intrinsics_loads_nxn_bench(float *dst, float *src, size_t n); 
+
+unsigned long matrix_transpose_segmented_load_intrinsics_nxn_bench(float *dst, float *src, size_t n); 
 
 unsigned long matrix_4x4_transpose_segmented_load_intrinsics_bench(float* dst, float* src);
 
@@ -79,6 +83,7 @@ int main(void) {
 
     matrix_4x4_bench_t benchmarks_4x4[] = {
         (matrix_4x4_bench_t){.bench = matrix_transpose_4x4_bench, .label="baseline matrix_transpose 4x4"},
+        (matrix_4x4_bench_t){.bench = matrix_transpose_rev_4x4_bench, .label="baseline matrix_transpose reversed 4x4"},
         (matrix_4x4_bench_t){.bench = matrix_transpose_intrinsics_4x4_bench, .label="matrix_transpose intrinsics 4x4"},
         (matrix_4x4_bench_t){.bench = matrix_transpose_intrinsics_loads_4x4_bench, .label="matrix_transpose intrinsics loads 4x4"},
         (matrix_4x4_bench_t){.bench = matrix_4x4_transpose_segmented_load_intrinsics_bench, .label="matrix_transpose_segmented_load 4x4"},
@@ -91,6 +96,7 @@ int main(void) {
         (matrix_nxn_bench_t){.bench = matrix_transpose_nxn_bench, .label="baseline matrix_transpose nxn"},
         (matrix_nxn_bench_t){.bench = matrix_transpose_intrinsics_nxn_bench, .label="matrix_transpose intrinsics nxn"},
         (matrix_nxn_bench_t){.bench = matrix_transpose_intrinsics_loads_nxn_bench, .label="matrix_transpose_loads intrinsics nxn"},
+        (matrix_nxn_bench_t){.bench = matrix_transpose_segmented_load_intrinsics_nxn_bench, .label="matrix_transpose_segmented_load intrinsics nxn"},
     };
 
     // 4x4 benchmarks
@@ -150,7 +156,7 @@ int main(void) {
             assert(!memcmp(matrixRef, matrixOut, n * n * sizeof(float)));
 
             printf("--------------------------------------------------------------------------------\n");
-
+        
             printf("%s used %d " PERF_METRIC "(s) to transpose %dx%d=%d element(s).\n",
                 benchmarks_nxn[benchId].label, perf_count, n, n, n * n);
         }

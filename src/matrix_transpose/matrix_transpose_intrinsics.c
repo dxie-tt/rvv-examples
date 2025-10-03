@@ -58,6 +58,13 @@ void matrix_transpose_4x4(float *dst, float *src)
         for (j = 0; j < 4; ++j) dst[i * 4 + j] = src[j * 4 + i];
 };
 
+void matrix_transpose_rev_4x4(float *dst, float *src) 
+{
+    size_t i, j;
+    for (j = 0; j < 4; ++j)
+        for (i = 0; i < 4; ++i) dst[i * 4 + j] = src[j * 4 + i];
+};
+
 /** 4x4 matrix transpose using strided stores */
 void matrix_transpose_intrinsics_4x4(float *dst,
                                      float *src) 
@@ -120,6 +127,38 @@ void matrix_transpose_intrinsics_loads(float *dst,
             row_dst += vl;
         }
     }
+};
+
+/** n x n matrix transpose using strided loads */
+void matrix_transpose_segmented_load_intrinsics(float *dst,
+                                                float *src,
+                                                size_t n) 
+{
+    // Fall back to generic if size is not a multiple of 8
+    if (n & 7) {
+	   matrix_transpose_intrinsics_loads(dst, src, n);
+    } else {
+       for (size_t row_id = 0; row_id < n; row_id+=8) { // input row-index
+           size_t avl = n;
+           float* col_src = src + row_id;
+           float* row_dst = dst + row_id * n;
+           while (avl > 0) {
+               size_t vl = __riscv_vsetvl_e32m1(avl);
+               vfloat32m1x8_t row = __riscv_vlsseg8e32_v_f32m1x8(col_src, sizeof(float) * n, vl);
+               __riscv_vse32_v_f32m1(row_dst,     __riscv_vget_v_f32m1x8_f32m1(row, 0), vl);
+               __riscv_vse32_v_f32m1(row_dst+1*n, __riscv_vget_v_f32m1x8_f32m1(row, 1), vl);
+               __riscv_vse32_v_f32m1(row_dst+2*n, __riscv_vget_v_f32m1x8_f32m1(row, 2), vl);
+               __riscv_vse32_v_f32m1(row_dst+3*n, __riscv_vget_v_f32m1x8_f32m1(row, 3), vl);
+               __riscv_vse32_v_f32m1(row_dst+4*n, __riscv_vget_v_f32m1x8_f32m1(row, 4), vl);
+               __riscv_vse32_v_f32m1(row_dst+5*n, __riscv_vget_v_f32m1x8_f32m1(row, 5), vl);
+               __riscv_vse32_v_f32m1(row_dst+6*n, __riscv_vget_v_f32m1x8_f32m1(row, 6), vl);
+               __riscv_vse32_v_f32m1(row_dst+7*n, __riscv_vget_v_f32m1x8_f32m1(row, 7), vl);
+               avl -= vl;
+               col_src += vl * n;
+               row_dst += vl;
+           }
+       }
+   }
 };
 
 /** Intrinsics based implementation of 4x4 32-bit matrix transpose */
@@ -258,6 +297,12 @@ unsigned long matrix_transpose_4x4_bench(float* dst, float* src)
     return matrix_4x4_transpose_bench(dst, src, matrix_transpose_4x4);
 }
 
+/** Benchmark wrapper for 4x4 baseline matrix transpose */
+unsigned long matrix_transpose_rev_4x4_bench(float* dst, float* src)
+{
+    return matrix_4x4_transpose_bench(dst, src, matrix_transpose_rev_4x4);
+}
+
 /** Benchmark wrapper for 4x4 intrinsic based matrix transpose */
 unsigned long matrix_transpose_intrinsics_4x4_bench(float* dst, float* src)
 {
@@ -280,6 +325,12 @@ unsigned long matrix_transpose_intrinsics_nxn_bench(float* dst, float* src, size
 unsigned long matrix_transpose_intrinsics_loads_nxn_bench(float* dst, float* src, size_t n)
 {
     return matrix_nxn_transpose_bench(dst, src, n, matrix_transpose_intrinsics_loads);
+}
+
+/** Benchmark wrapper for nxn intrinsic based matrix transpose */
+unsigned long matrix_transpose_segmented_load_intrinsics_nxn_bench(float* dst, float* src, size_t n)
+{
+    return matrix_nxn_transpose_bench(dst, src, n, matrix_transpose_segmented_load_intrinsics);
 }
 
 /** wrapping segmented load based implementation */
