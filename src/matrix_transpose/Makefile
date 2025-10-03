@@ -12,7 +12,7 @@ EXTRA_CFLAGS?=-DCOUNT_INSTRET
 
 # architectural parameters for the simulation
 # width of vector registers (VLEN)
-VLEN?=128
+VLEN?=256
 
 # path to proxy-kernel (pk)
 PK_PATH=/opt/riscv/riscv64-unknown-elf/bin/pk64 
@@ -23,10 +23,10 @@ SIMULATOR=spike --isa=rv64gcv_zicntr_zihpm --varch=vlen:$(VLEN),elen:64 $(PK_PAT
 # SIMULATOR=qemu-riscv64 -cpu rv64,v=on,vext_spec=v1.0,vlen=128,rvv_ta_all_1s=on
 
 matrix_transpose_intrinsics.o: matrix_transpose_intrinsics.c
-	$(RISCVCLANG) $(EXTRA_CFLAGS) -I./ -O2 -march=rv64gcv -c -o $@ $^
+	$(RISCVCC) $(EXTRA_CFLAGS) -static -I./ -O2 -march=rv64gcv_zicsr -c -o $@ $^
 
 bench_matrix_transpose: bench_matrix_transpose.c matrix_transpose_intrinsics.o
-	 $(RISCVCC) $(EXTRA_CFLAGS) -I./ -O2 -march=rv64gcv $^ -o $@
+	 $(RISCVCC) $(EXTRA_CFLAGS) -static -I./ -O2 -march=rv64gcv_zicsr $^ -o $@
 
 sim_bench_matrix_transpose: bench_matrix_transpose
 	$(SIMULATOR) $^

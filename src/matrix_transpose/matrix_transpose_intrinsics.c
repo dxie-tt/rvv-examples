@@ -145,7 +145,11 @@ void matrix_4x4_transpose_segmented_load_intrinsics(float* dst, float* src) {
     vfloat32m1_t data2 = __riscv_vget_v_f32m1x4_f32m1(data, 2);
     vfloat32m1_t data3 = __riscv_vget_v_f32m1x4_f32m1(data, 3);
     vfloat32m4_t packedData = __riscv_vcreate_v_f32m1_f32m4(data0, data1, data2, data3);
-    __riscv_vse32_v_f32m4(dst, packedData, 16);
+    vuint8m1_t vid = __riscv_vid_v_u8m1(32);
+    vuint8m1_t vid_mod = __riscv_vand_vx_u8m1(vid, 0x4, 32);
+    vbool8_t mask = __riscv_vmseq_vx_u8m1_b8(vid_mod, 0, 32);
+    vfloat32m4_t compressedData = __riscv_vcompress_vm_f32m4(packedData, mask, 32);
+    __riscv_vse32_v_f32m2(dst, __riscv_vget_v_f32m4_f32m2(compressedData, 0), 16);
 }
 
 
