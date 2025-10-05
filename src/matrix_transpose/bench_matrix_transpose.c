@@ -1,11 +1,12 @@
 // file: bench_matrix_transpose.c
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
 #include <bench_matrix_utils.h>
 
+unsigned long counter_value_prev;
+unsigned long counter_value_hi;
 
 /** Display the content of a n x matrix on stdout */
 void matrix_dump(float *mat, unsigned n)
@@ -78,6 +79,9 @@ int main(void) {
         src[i] = rand() / (float) RAND_MAX;
     }
 
+    counter_value_prev = 0;
+    counter_value_hi = 0;
+
     printf("source matrix:\n");
     matrix_dump(src, MATRIX_SIZE);
 
@@ -126,7 +130,7 @@ int main(void) {
         printf("%s used %d " PERF_METRIC "(s) to transpose %dx%d=%d element(s).\n",
             benchmarks_nxn[benchId].label, perf_count, MATRIX_SIZE, MATRIX_SIZE, MATRIX_SIZE * MATRIX_SIZE);
     }
-    size_t testSizes[] = {4, 16, 128, 512, 17, 129, 511};
+    size_t testSizes[] = {4, 16, 128, 256, 17, 129, 257};
     for (size_t testId = 0; testId < sizeof(testSizes) / sizeof(size_t); testId++)
     {
         size_t n = testSizes[testId];

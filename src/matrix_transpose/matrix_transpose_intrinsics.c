@@ -5,26 +5,36 @@
 
 /** generic benchmark wrapper for 4x4 matrix transpose implementations */
 unsigned long matrix_4x4_transpose_bench(float* dst, float* src, matrix_transpose_4x4_func_t func) {
-    unsigned long start, stop;
-    start = read_perf_counter();
-    for (int iter=0; iter<4; iter++) {
+    unsigned long start, stop, cycles, min_cycles;
+    min_cycles = -1;
+    for (int iter=0; iter<32; iter++) {
+        start = read_perf_counter();
         func(dst, src);
         func(src, dst);
+        stop = read_perf_counter();
+	cycles = stop - start;
+	if (cycles < min_cycles) {
+	    min_cycles = cycles;
+	}
     }
-    stop = read_perf_counter();
-    return (stop - start)/8;
+    return min_cycles / 2;
 }
 
 /** generic benchmark wrapper for 4x4 matrix transpose implementations */
 unsigned long matrix_nxn_transpose_bench(float* dst, float* src, size_t n, matrix_transpose_nxn_func_t func) {
-    unsigned long start, stop;
-    start = read_perf_counter();
-    for (int iter=0; iter<4; iter++) {
+    unsigned long start, stop, cycles, min_cycles;
+    min_cycles = -1;
+    for (int iter=0; iter<32; iter++) {
+        start = read_perf_counter();
         func(dst, src, n);
         func(src, dst, n);
+        stop = read_perf_counter();
+	cycles = stop - start;
+	if (cycles < min_cycles) {
+	    min_cycles = cycles;
+	}
     }
-    stop = read_perf_counter();
-    return (stop - start)/8;
+    return min_cycles / 2;
 }
 
 /** transpose of a n x n matrix
@@ -244,14 +254,14 @@ unsigned long matrix_4x4_transpose_vrgather_bench (float* dst, float* src) {
     vfloat32m4_t data = __riscv_vle32_v_f32m4(src, 16);
     start = read_perf_counter();
     vfloat32m4_t result;
-    for (int iter=0; iter<4; iter++) {
+    for (int iter=0; iter<8; iter++) {
         result = matrix_4x4_transpose_vrgather(data);
         data = matrix_4x4_transpose_vrgather(result);
     }
     stop = read_perf_counter();
     __riscv_vse32_v_f32m4(dst, result, 16);
 
-    return (stop - start)/8;
+    return (stop - start)/16;
 }
 
 vfloat32m4_t matrix_4x4_transpose_vslide(vfloat32m4_t src) {
